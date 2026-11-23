@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="186 146 664 664" width="24" height="24">
+  <defs>
+    <clipPath id="bmBowlBodyClip">
+      <path d="M 224 494 C 224 654, 342 746, 512 746 C 682 746, 800 654, 800 494 C 722 528, 622 544, 512 544 C 402 544, 302 528, 224 494 Z"/>
+    </clipPath>
+    <clipPath id="bmNoodleClip">
+      <path d="M 256 490 C 270 404, 380 356, 512 356 C 644 356, 754 404, 768 490 C 696 520, 608 534, 512 534 C 416 534, 328 520, 256 490 Z"/>
+    </clipPath>
+
+    <!-- High-contrast saturated gradients readable on both light and dark title bars -->
+    <linearGradient id="bmFootGrad" x1="408" y1="736" x2="616" y2="778" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#9a3412"/>
+      <stop offset="100%" stop-color="#7c2d12"/>
+    </linearGradient>
+
+    <linearGradient id="bmBowlGrad" x1="252" y1="494" x2="776" y2="748" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="46%" stop-color="#f43f5e"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+
+    <linearGradient id="bmBowlBottomAO" x1="512" y1="642" x2="512" y2="748" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4c0519" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#4c0519" stop-opacity="0.42"/>
+    </linearGradient>
+
+    <linearGradient id="bmRimGrad" x1="224" y1="454" x2="800" y2="538" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="42%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <linearGradient id="bmBrothGrad" x1="512" y1="426" x2="512" y2="550" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#78350f"/>
+      <stop offset="100%" stop-color="#92400e"/>
+    </linearGradient>
+
+    <linearGradient id="bmNoodleGrad" x1="420" y1="364" x2="604" y2="528" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="52%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <linearGradient id="bmChopstickGrad" x1="540" y1="264" x2="824" y2="412" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fcd34d"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <linearGradient id="bmLensRingGrad" x1="372" y1="184" x2="564" y2="356" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="52%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+
+    <radialGradient id="bmLensGlassGrad" cx="448" cy="242" r="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#bae6fd" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.28"/>
+    </radialGradient>
+
+    <linearGradient id="bmSteamGrad" x1="330" y1="210" x2="380" y2="364" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fb923c" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Chopsticks behind noodles -->
+  <path d="M 526 420 L 792 264 C 804 257, 816 274, 804 284 L 548 438 Z" fill="url(#bmChopstickGrad)"/>
+  <path d="M 552 444 L 814 336 C 826 331, 832 348, 820 356 L 568 462 Z" fill="url(#bmChopstickGrad)"/>
+
+  <!-- Bowl foot -->
+  <path d="M 410 726 L 614 726 L 598 766 C 594 776, 584 782, 572 782 L 452 782 C 440 782, 430 776, 426 766 Z"
+        fill="url(#bmFootGrad)"/>
+
+  <!-- Rim & broth -->
+  <ellipse cx="512" cy="488" rx="288" ry="70" fill="url(#bmRimGrad)"/>
+  <ellipse cx="512" cy="488" rx="270" ry="60" fill="url(#bmBrothGrad)"/>
+
+  <!-- Golden ramen noodle mound -->
+  <g clip-path="url(#bmNoodleClip)">
+    <path d="M 272 486 C 282 406, 386 362, 512 362 C 638 362, 742 406, 752 486 C 680 518, 598 532, 512 532 C 426 532, 344 518, 272 486 Z"
+          fill="url(#bmNoodleGrad)"/>
+    <path d="M 298 456 Q 350 422 402 452 T 506 448 T 610 454 T 702 448"
+          fill="none" stroke="#fef9c3" stroke-opacity="0.82" stroke-width="16" stroke-linecap="round"/>
+    <path d="M 326 486 Q 382 452 438 482 T 548 480 T 658 484"
+          fill="none" stroke="#fef9c3" stroke-opacity="0.65" stroke-width="14" stroke-linecap="round"/>
+  </g>
+
+  <!-- Narutomaki garnish -->
+  <circle cx="622" cy="442" r="46" fill="#fff1f2"/>
+  <path d="M 622 442 C 622 430, 636 430, 636 442 C 636 458, 610 460, 608 440 C 606 418, 646 416, 650 444"
+        fill="none" stroke="#f43f5e" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- Ceramic bowl body -->
+  <path d="M 224 494 C 224 654, 342 746, 512 746 C 682 746, 800 654, 800 494 C 722 528, 622 544, 512 544 C 402 544, 302 528, 224 494 Z"
+        fill="url(#bmBowlGrad)"/>
+  <g clip-path="url(#bmBowlBodyClip)">
+    <rect x="224" y="642" width="576" height="108" fill="url(#bmBowlBottomAO)"/>
+    <path d="M 224 494 C 302 528, 402 544, 512 544 C 622 544, 722 528, 800 494 L 800 520 C 722 554, 622 570, 512 570 C 402 570, 302 554, 224 520 Z"
+          fill="url(#bmRimGrad)"/>
+  </g>
+
+  <!-- Steam curl -->
+  <path d="M 342 362 C 314 332, 366 300, 338 266 C 322 246, 332 224, 348 214"
+        fill="none" stroke="url(#bmSteamGrad)" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- Floating Search Lens -->
+  <circle cx="462" cy="246" r="66" fill="url(#bmLensGlassGrad)"/>
+  <circle cx="462" cy="246" r="66" fill="none" stroke="url(#bmLensRingGrad)" stroke-width="26"/>
+  <path d="M 512 296 L 552 336" fill="none" stroke="url(#bmLensRingGrad)" stroke-width="28" stroke-linecap="round"/>
+</svg>

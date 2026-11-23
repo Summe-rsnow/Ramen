@@ -1,0 +1,201 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Squircle app container clip -->
+    <clipPath id="tileClip">
+      <rect x="64" y="64" width="896" height="896" rx="212"/>
+    </clipPath>
+
+    <!-- Shape clips for crisp rim highlights and ambient occlusion -->
+    <clipPath id="bowlBodyClip">
+      <path d="M 224 494 C 224 654, 342 746, 512 746 C 682 746, 800 654, 800 494 C 722 528, 622 544, 512 544 C 402 544, 302 528, 224 494 Z"/>
+    </clipPath>
+    <clipPath id="brothClip">
+      <ellipse cx="512" cy="488" rx="270" ry="62"/>
+    </clipPath>
+    <clipPath id="noodleClip">
+      <path d="M 256 490 C 270 404, 380 356, 512 356 C 644 356, 754 404, 768 490 C 696 520, 608 534, 512 534 C 416 534, 328 520, 256 490 Z"/>
+    </clipPath>
+
+    <!-- Deep obsidian tile canvas matching Bento/Wonton/Sundae family -->
+    <linearGradient id="tileBg" x1="128" y1="72" x2="896" y2="952" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#161f33"/>
+      <stop offset="52%" stop-color="#0e1320"/>
+      <stop offset="100%" stop-color="#090c14"/>
+    </linearGradient>
+
+    <radialGradient id="topAura" cx="512" cy="348" r="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fb923c" stop-opacity="0.32"/>
+      <stop offset="48%" stop-color="#3b82f6" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#0e1320" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="tileRim" x1="180" y1="64" x2="844" y2="960" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fed7aa" stop-opacity="0.28"/>
+      <stop offset="50%" stop-color="#fb923c" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.06"/>
+    </linearGradient>
+
+    <!-- Warm amber-coral floor glow -->
+    <radialGradient id="levitateGlow" cx="512" cy="816" r="228" gradientUnits="userSpaceOnUse" gradientTransform="translate(0 734) scale(1 0.1)">
+      <stop offset="0%" stop-color="#fb923c" stop-opacity="0.46"/>
+      <stop offset="55%" stop-color="#f43f5e" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#f43f5e" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Bowl foot & sculpted lacquer ceramic body -->
+    <linearGradient id="footGrad" x1="408" y1="736" x2="616" y2="778" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7c2d12"/>
+      <stop offset="50%" stop-color="#9a3412"/>
+      <stop offset="100%" stop-color="#431407"/>
+    </linearGradient>
+
+    <linearGradient id="bowlGrad" x1="252" y1="494" x2="776" y2="748" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="32%" stop-color="#f43f5e"/>
+      <stop offset="72%" stop-color="#e11d48"/>
+      <stop offset="100%" stop-color="#9f1239"/>
+    </linearGradient>
+
+    <radialGradient id="bowlSheen" cx="376" cy="596" r="260" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fff1f2" stop-opacity="0.28"/>
+      <stop offset="55%" stop-color="#fda4af" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#881337" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="bowlBottomAO" x1="512" y1="636" x2="512" y2="748" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4c0519" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#2a0410" stop-opacity="0.52"/>
+    </linearGradient>
+
+    <!-- Warm amber-gold ceramic rim & broth -->
+    <linearGradient id="rimGrad" x1="224" y1="454" x2="800" y2="538" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="34%" stop-color="#fbbf24"/>
+      <stop offset="74%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <linearGradient id="brothGrad" x1="512" y1="426" x2="512" y2="550" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#78350f"/>
+      <stop offset="52%" stop-color="#92400e"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+
+    <!-- Golden ramen noodles dome -->
+    <linearGradient id="noodleGrad" x1="420" y1="364" x2="604" y2="528" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="46%" stop-color="#fcd34d"/>
+      <stop offset="82%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <linearGradient id="noodleHighlight" x1="340" y1="380" x2="684" y2="496" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fffbeb" stop-opacity="0.88"/>
+      <stop offset="60%" stop-color="#fde68a" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.1"/>
+    </linearGradient>
+
+    <!-- Narutomaki fishcake accent -->
+    <radialGradient id="narutoGrad" cx="622" cy="442" r="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="70%" stop-color="#fff1f2"/>
+      <stop offset="100%" stop-color="#fecdd3"/>
+    </radialGradient>
+
+    <!-- Chopsticks -->
+    <linearGradient id="chopstickGrad" x1="540" y1="264" x2="824" y2="412" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="50%" stop-color="#fcd34d"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <!-- Floating luminous search-lens / steam emblem -->
+    <radialGradient id="lensHalo" cx="468" cy="264" r="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#93c5fd" stop-opacity="0.44"/>
+      <stop offset="50%" stop-color="#60a5fa" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#60a5fa" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="lensRingGrad" x1="372" y1="184" x2="564" y2="356" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="44%" stop-color="#bfdbfe"/>
+      <stop offset="82%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+    <radialGradient id="lensGlassGrad" cx="448" cy="242" r="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#e0f2fe" stop-opacity="0.52"/>
+      <stop offset="65%" stop-color="#60a5fa" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#1d4ed8" stop-opacity="0.34"/>
+    </radialGradient>
+    <linearGradient id="steamGrad" x1="330" y1="210" x2="380" y2="364" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fff7ed" stop-opacity="0.92"/>
+      <stop offset="60%" stop-color="#fed7aa" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#fb923c" stop-opacity="0.08"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Squircle Container -->
+  <g clip-path="url(#tileClip)">
+    <rect x="64" y="64" width="896" height="896" rx="212" fill="url(#tileBg)"/>
+    <circle cx="512" cy="348" r="420" fill="url(#topAura)"/>
+  </g>
+  <rect x="65" y="65" width="894" height="894" rx="211" fill="none" stroke="url(#tileRim)" stroke-width="2.5"/>
+
+  <!-- Soft floor levitation glow -->
+  <ellipse cx="512" cy="816" rx="216" ry="21" fill="url(#levitateGlow)"/>
+
+  <!-- Chopsticks tucked behind noodle crest on upper right -->
+  <path d="M 526 420 L 792 264 C 804 257, 816 274, 804 284 L 548 438 Z" fill="url(#chopstickGrad)"/>
+  <path d="M 552 444 L 826 332 C 839 327, 846 346, 832 354 L 568 462 Z" fill="url(#chopstickGrad)" opacity="0.92"/>
+
+  <!-- Bowl foot -->
+  <path d="M 410 726 L 614 726 L 598 770 C 594 780, 584 786, 572 786 L 452 786 C 440 786, 430 780, 426 770 Z"
+        fill="url(#footGrad)"/>
+
+  <!-- Inner dark broth oval -->
+  <ellipse cx="512" cy="488" rx="288" ry="70" fill="url(#rimGrad)"/>
+  <ellipse cx="512" cy="488" rx="270" ry="60" fill="url(#brothGrad)"/>
+
+  <!-- Golden ramen noodle mound inside rim -->
+  <g clip-path="url(#noodleClip)">
+    <path d="M 272 486 C 282 406, 386 362, 512 362 C 638 362, 742 406, 752 486 C 680 518, 598 532, 512 532 C 426 532, 344 518, 272 486 Z"
+          fill="url(#noodleGrad)"/>
+    <!-- Crisp wavy noodle strands -->
+    <path d="M 294 454 Q 344 418 394 450 T 494 446 T 594 452 T 694 448"
+          fill="none" stroke="url(#noodleHighlight)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M 314 484 Q 368 448 422 480 T 530 478 T 638 482 T 722 474"
+          fill="none" stroke="url(#noodleHighlight)" stroke-width="13" stroke-linecap="round"/>
+    <path d="M 358 418 Q 414 392 470 416 T 582 414 T 668 418"
+          fill="none" stroke="url(#noodleHighlight)" stroke-width="12" stroke-linecap="round"/>
+  </g>
+
+  <!-- Narutomaki fishcake garnish on right side -->
+  <circle cx="622" cy="442" r="48" fill="url(#narutoGrad)"/>
+  <path d="M 622 442 C 622 430, 636 430, 636 442 C 636 458, 610 460, 608 440 C 606 418, 646 416, 650 444"
+        fill="none" stroke="#fb7185" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Sculpted ceramic bowl front wall -->
+  <path d="M 224 494 C 224 654, 342 746, 512 746 C 682 746, 800 654, 800 494 C 722 528, 622 544, 512 544 C 402 544, 302 528, 224 494 Z"
+        fill="url(#bowlGrad)"/>
+  <g clip-path="url(#bowlBodyClip)">
+    <path d="M 224 494 C 224 654, 342 746, 512 746 C 682 746, 800 654, 800 494 C 722 528, 622 544, 512 544 C 402 544, 302 528, 224 494 Z"
+          fill="url(#bowlSheen)"/>
+    <rect x="224" y="636" width="576" height="114" fill="url(#bowlBottomAO)"/>
+    <!-- Crisp golden-amber front bowl rim band + 5px highlight -->
+    <path d="M 224 494 C 302 528, 402 544, 512 544 C 622 544, 722 528, 800 494 L 800 516 C 722 550, 622 566, 512 566 C 402 566, 302 550, 224 516 Z"
+          fill="url(#rimGrad)"/>
+    <path d="M 232 498 C 308 530, 406 546, 512 546 C 618 546, 716 530, 792 498"
+          fill="none" stroke="#fffbeb" stroke-opacity="0.72" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Subtle rising steam curl on left -->
+  <path d="M 342 362 C 314 332, 366 300, 338 266 C 322 246, 332 224, 348 214"
+        fill="none" stroke="url(#steamGrad)" stroke-width="18" stroke-linecap="round"/>
+
+  <!-- Luminous floating Search-Lens jewel above the bowl -->
+  <circle cx="468" cy="252" r="152" fill="url(#lensHalo)"/>
+  <circle cx="462" cy="246" r="66" fill="url(#lensGlassGrad)"/>
+  <circle cx="462" cy="246" r="66" fill="none" stroke="url(#lensRingGrad)" stroke-width="22"/>
+  <path d="M 512 296 L 552 336" fill="none" stroke="url(#lensRingGrad)" stroke-width="24" stroke-linecap="round"/>
+  <!-- Glass specular glint -->
+  <path d="M 426 220 A 46 46 0 0 1 480 206" fill="none" stroke="#ffffff" stroke-opacity="0.78" stroke-width="8" stroke-linecap="round"/>
+</svg>

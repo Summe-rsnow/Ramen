@@ -1,0 +1,22 @@
+{
+  "name": "Ramen",
+  "id": "com.xcmm.ramen",
+  "version": "1.0.0",
+  "build": 1,
+  "singleInstance": true,
+  "icon": "assets/icon.png",
+  "appearance": "system",
+  "theme": "theme.json",
+  "rust": ".",
+  "root": "App",
+  "window": {
+    "minSize": {
+      "width": 820,
+      "height": 540
+    },
+    "titleBar": {
+      "style": "hidden",
+      "height": 48
+    }
+  }
+}
