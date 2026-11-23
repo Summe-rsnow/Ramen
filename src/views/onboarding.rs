@@ -50,7 +50,7 @@ fn offline_card(svc: DaemonServiceState) -> impl IntoElement {
         DaemonServiceState::NotInstalled => (
             "安装并启用全盘高速索引服务",
             format!(
-                "Ramen 集成 goz v{PINNED_GOZ_VERSION} 后台索引服务（gozd.exe），通过读取 NTFS MFT 与 USN 日志实现毫秒级全盘文件极速搜索。首次使用将自动校验 SHA-256 并通过管理员权限安装至 Program Files\\goz\\gozd.exe。"
+                "Ramen 已随包捆绑 goz v{PINNED_GOZ_VERSION} 后台索引服务（gozd.exe），通过读取 NTFS MFT 与 USN 日志实现毫秒级全盘文件极速搜索。点击下方按钮可通过管理员权限安装至 Program Files\\goz\\gozd.exe 并启动服务。"
             ),
             ValueTone::Info,
             icons::ROCKET,

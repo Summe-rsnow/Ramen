@@ -42,6 +42,30 @@ jobs:
             Copy-Item $gozd -Destination (Join-Path $_.FullName "gozd.exe") -Force
           }
 
+          $iscc = (Get-Command ISCC.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source -First 1)
+          if (-not $iscc) {
+            $iscc = @(
+              "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+              "$env:ProgramFiles\Inno Setup 6\ISCC.exe"
+            ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          }
+          if (-not $iscc) {
+            throw "Inno Setup 6 (ISCC.exe) not found; cannot rebuild setup installer with bundled gozd.exe"
+          }
+
+          Get-ChildItem ".nsh/out/*.iss" | ForEach-Object {
+            $issContent = Get-Content $_.FullName -Raw
+            $issContent = $issContent -replace '(?m)^PrivilegesRequired=lowest\r?$', "PrivilegesRequired=admin"
+            $serviceRunLine = 'Filename: "{app}\gozd.exe"; Parameters: "install"; Flags: runhidden waituntilterminated; StatusMsg: "Installing and starting goz indexing service..."'
+            $issContent = $issContent -replace '(?m)^\[Run\]\r?$', "[Run]`r`n$serviceRunLine"
+            Set-Content -Path $_.FullName -Value $issContent -Encoding UTF8
+
+            & $iscc $_.FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "ISCC.exe failed for $($_.FullName) with exit code $LASTEXITCODE"
+            }
+          }
+
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           Get-ChildItem ".nsh/out/*.zip" | ForEach-Object {
             $zip = [System.IO.Compression.ZipFile]::Open($_.FullName, [System.IO.Compression.ZipArchiveMode]::Update)

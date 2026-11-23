@@ -10,7 +10,7 @@
 基于 **Rust + [NSH](https://github.com/longbridge/nsh) + [Bento](https://github.com/Summe-rsnow/Bento) `v1.0.1`** 构建，直接集成 **[goz](https://github.com/mustafaahci/goz) `v0.7.1`** 索引服务，纯原生渲染，无 JavaScript 运行时开销。
 
 <p>
-  <a href="https://github.com/Summe-rsnow/Ramen/releases"><img src="https://img.shields.io/badge/Version-v1.0.0-f97316?style=flat-square" alt="Version v1.0.0" /></a>
+  <a href="https://github.com/Summe-rsnow/Ramen/releases"><img src="https://img.shields.io/badge/Version-v1.0.1-f97316?style=flat-square" alt="Version v1.0.1" /></a>
   <img src="https://img.shields.io/badge/Rust-2024-orange?style=flat-square&logo=rust" alt="Rust 2024" />
   <img src="https://img.shields.io/badge/Platform-Windows-0ea5e9?style=flat-square" alt="Platform Windows" />
   <img src="https://img.shields.io/badge/UI-NSH%20Native-6366f1?style=flat-square" alt="UI NSH Native" />
@@ -36,9 +36,9 @@
   - 后台由 Windows 系统服务 `gozd.exe` 直接读取 NTFS 主文件表（`$MFT`）与 USN 变更日志维持全盘内存索引；前端以普通用户权限运行，避免每次启动 UAC 弹窗并保持文件拖拽与打开体验。
   - 通过 Named Pipe `\\.\pipe\goz-v1` 长连接通信，严格校验管道所有者为 `SYSTEM` 或 `Administrators`（防非特权管道劫持）；后台工作线程配合 `35ms` 输入防抖、`32ms` 事件队列轮询与 `Watch` 实时变更推送。
   - 状态栏实时展示匹配条目数、总体积、耗时（ms）、`volumes_incomplete` 构建提示与 `metadata_pending` 元数据补全状态。
-- **🛠️ 开箱即用的服务引导与运维**
-  - 首次未安装或服务停止时展示清晰引导视图，自动定位随包 `gozd.exe` 或自动下载并校验 `goz-v0.7.1-windows-x86_64.zip`（SHA-256 固定校验）。
-  - 支持一键通过 UAC 提权安装、升级、启动或卸载 `goz` Windows 服务，检测到服务端版本与 `v0.7.1` 不一致时自动提示升级；设置弹窗内置分卷状态与 `gozd` 内存占用监控。
+- **🛠️ 开箱即用的服务集成与运维**
+  - Windows 安装包（`.exe`）已随包捆绑固定版本 `gozd.exe v0.7.1`，并在安装阶段自动注册并启动 `goz` Windows 系统服务，安装完成打开即可直接搜索。
+  - 若使用便携压缩包（`.zip`）或服务被手动停止，首次启动会展示清晰的引导视图，自动定位随包 `gozd.exe` 并支持一键 UAC 提权安装、升级、启动或卸载 `goz` 服务；检测到服务端版本与 `v0.7.1` 不一致时自动提示升级，设置弹窗内置分卷状态与 `gozd` 内存占用监控。
 - **🔍 高密度桌面搜索体验**
   - 顶部搜索工具栏集成 `Aa` 区分大小写开关、路径作用域胶囊（右键「仅在此目录搜索」+ 一键清除）与 `?` 语法速查弹窗。
   - 提供 8 个实时文件分类筛选芯片（`全部` / `文件夹` / `文档` / `图片` / `视频` / `音频` / `压缩包` / `代码`）与可点击排序表头（`名称` / `路径` / `大小` / `修改时间`）。
@@ -135,7 +135,7 @@ Ramen/
 ├── assets/                 # 应用图标、Logo、品牌标与 64×64 托盘图标
 ├── scripts/
 │   └── fetch-gozd.ps1      # goz v0.7.1 下载与 SHA-256 校验脚本
-├── nsh.json                # 应用元信息、版本号（1.0.0）、窗口配置与主题声明
+├── nsh.json                # 应用元信息、版本号（1.0.1）、窗口配置与主题声明
 ├── theme.json              # 浅色 / 深色语义色 Token（与 Bento 家族规范对齐）
 ├── DESIGN.md               # 设计规范、布局架构、动效清单与无障碍约定
 ├── src/
@@ -174,7 +174,7 @@ Ramen/
 | **Bento** | `v1.0.1` | [Summe-rsnow/Bento](https://github.com/Summe-rsnow/Bento) | 共享原生 UI 组件库、统一 24×24 图标库与桌面壳基础设施 |
 | **Wonton** | `v1.2.2` | [Summe-rsnow/Wonton](https://github.com/Summe-rsnow/Wonton) | 专为 Antigravity 打造的进程级独立代理与多账号额度管理工具 |
 | **Sundae** | `v1.0.1` | [Summe-rsnow/Sundae](https://github.com/Summe-rsnow/Sundae) | 专为 Windows Scoop 打造的轻快原生桌面软件包管理器 |
-| **Ramen** | `v1.0.0` | [Summe-rsnow/Ramen](https://github.com/Summe-rsnow/Ramen) | 专为 Windows 打造的极速桌面文件搜索与即时索引检索工具 |
+| **Ramen** | `v1.0.1` | [Summe-rsnow/Ramen](https://github.com/Summe-rsnow/Ramen) | 专为 Windows 打造的极速桌面文件搜索与即时索引检索工具 |
 
 ---
 

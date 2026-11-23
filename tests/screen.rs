@@ -154,7 +154,7 @@ fn LargeResultsApp() -> impl IntoElement {
 fn app_shell_renders_titlebar_order_theme_and_dialogs() -> Result<(), String> {
     let mut app = start_desktop::<nsh_app_ramen::App>(1040.0, 680.0)?;
     app.wait_for("Ramen")?;
-    assert!(app.screen().shows("v1.0.0"));
+    assert!(app.screen().shows("v1.0.1"));
 
     // Verify title-bar right-hand controls place action icons left of the theme switcher
     let layout = app.screen().layout_nodes();
@@ -200,7 +200,7 @@ fn app_shell_renders_titlebar_order_theme_and_dialogs() -> Result<(), String> {
     app.press("label:关于 Ramen")?;
     app.wait_for("版本更新")?;
     assert!(app.screen().shows("Summe-rsnow/Ramen"));
-    assert!(app.screen().shows("v1.0.0"));
+    assert!(app.screen().shows("v1.0.1"));
     app.press("关闭")?;
     app.wait_for_gone("版本更新", Duration::from_secs(2))?;
 

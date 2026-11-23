@@ -17,6 +17,6 @@ pub use service::{
     start_service, uninstall_service,
 };
 pub use version::{
-    PINNED_GOZ_TAG, PINNED_GOZ_VERSION, PINNED_GOZ_ZIP_SHA256, PINNED_GOZ_ZIP_URL,
-    cached_gozd_path, ensure_gozd_binary, locate_gozd_binary, server_matches_pinned,
+    PINNED_GOZ_TAG, PINNED_GOZ_VERSION, locate_gozd_binary, require_gozd_binary,
+    server_matches_pinned,
 };

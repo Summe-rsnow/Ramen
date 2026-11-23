@@ -15,7 +15,7 @@ use super::{
     SearchRow,
 };
 use crate::goz::{
-    ensure_gozd_binary, install_or_upgrade_service, installed_gozd_path, locate_gozd_binary,
+    install_or_upgrade_service, installed_gozd_path, locate_gozd_binary, require_gozd_binary,
     start_service, uninstall_service, EngineEvent,
 };
 
@@ -132,22 +132,24 @@ pub fn reconnect_or_refresh() {
     }
 }
 
-/// Downloads/verifies `gozd v0.7.1` (if missing) and installs or upgrades + starts the Windows service.
+/// Installs or upgrades and starts the `goz` Windows service using the bundled `gozd.exe`.
 pub fn install_or_upgrade_service_action() {
     if is_service_busy() {
         return;
     }
 
-    let initial_label = if locate_gozd_binary().is_some() {
-        "正在请求管理员权限安装并启动 goz v0.7.1 服务…".to_owned()
-    } else {
-        "正在下载 gozd v0.7.1 并校验 SHA-256…".to_owned()
-    };
-    set_service_busy(true, Some(initial_label), None);
+    set_service_busy(
+        true,
+        Some(format!(
+            "正在请求管理员权限安装并启动 goz v{} 服务…",
+            crate::goz::PINNED_GOZ_VERSION
+        )),
+        None,
+    );
 
     spawn(async move {
         let outcome = blocking(move || {
-            let gozd_exe = ensure_gozd_binary()?;
+            let gozd_exe = require_gozd_binary()?;
             install_or_upgrade_service(&gozd_exe)
         })
         .await;
