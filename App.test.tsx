@@ -3,7 +3,7 @@ import { expect, open, test } from "nsh/test";
 test("opens Ramen shell, About dialog, Settings dialog, and Syntax Help", async () => {
   const app = await open(".", { width: 1040, height: 680, platform: "windows" });
   expect(app.texts()).toContain("Ramen");
-  expect(app.texts()).toContain("v1.0.1");
+  expect(app.texts()).toContain("v1.0.2");
 
   await app.press("label:设置与快捷键");
   await app.waitFor("设置与服务");
