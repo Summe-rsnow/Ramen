@@ -61,12 +61,67 @@ jobs:
             if ($issContent -notmatch '(?m)^PrivilegesRequired=lowest\r?$') {
               throw "Expected PrivilegesRequired=lowest in $($_.FullName)"
             }
+            if ($issContent -notmatch '(?m)^DisableDirPage=auto\r?$') {
+              throw "Expected DisableDirPage=auto in $($_.FullName)"
+            }
             if ($issContent -notmatch '(?m)^\[Run\]\r?$') {
               throw "Expected [Run] section in $($_.FullName)"
             }
+            if ($issContent -notmatch '(?m)^\[Code\]\r?$') {
+              throw "Expected [Code] section in $($_.FullName)"
+            }
+            $uninstallProcPattern = '(?s)procedure CurUninstallStepChanged\(CurUninstallStep: TUninstallStep\);.*?\bend;'
+            if ($issContent -notmatch $uninstallProcPattern) {
+              throw "Expected CurUninstallStepChanged procedure in $($_.FullName)"
+            }
+
             $issContent = $issContent -replace '(?m)^PrivilegesRequired=lowest\r?$', "PrivilegesRequired=admin"
+            $issContent = $issContent -replace '(?m)^DisableDirPage=auto\r?$', "DisableDirPage=no"
+
             $serviceRunLine = 'Filename: "{app}\gozd.exe"; Parameters: "install"; Flags: runhidden waituntilterminated; StatusMsg: "Installing and starting goz indexing service..."'
             $issContent = $issContent -replace '(?m)^\[Run\]\r?$', "[Run]`r`n$serviceRunLine"
+
+            $uninstallSections = @(
+              '[UninstallRun]'
+              'Filename: "{app}\gozd.exe"; Parameters: "uninstall"; Flags: runhidden waituntilterminated skipifdoesntexist; RunOnceId: "UninstallGozService"'
+              'Filename: "{commonpf}\goz\gozd.exe"; Parameters: "uninstall"; Flags: runhidden waituntilterminated skipifdoesntexist; RunOnceId: "UninstallGozServiceFallback"'
+              'Filename: "{sys}\cmd.exe"; Parameters: "/C sc.exe stop goz >NUL 2>&1 & sc.exe delete goz >NUL 2>&1 & taskkill.exe /F /IM gozd.exe >NUL 2>&1"; Flags: runhidden waituntilterminated; RunOnceId: "CleanupGozService"'
+              ''
+              '[UninstallDelete]'
+              'Type: filesandordirs; Name: "{commonpf}\goz"'
+              'Type: filesandordirs; Name: "{win}\Logs\goz"'
+              'Type: filesandordirs; Name: "{commonappdata}\goz"'
+              'Type: filesandordirs; Name: "{localappdata}\goz"'
+              'Type: files; Name: "{app}\gozd.exe"'
+              ''
+              '[Code]'
+            ) -join "`r`n"
+            $issContent = $issContent -replace '(?m)^\[Code\]\r?$', $uninstallSections
+
+            $unifiedUninstallCode = @(
+              'procedure NshRemoveRunValue(const ValueName, Exe: String);'
+              'var'
+              '  Command: String;'
+              'begin'
+              "  if not RegQueryStringValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run', ValueName, Command) then"
+              '    Exit;'
+              '  if (CompareText(NshProgram(Command), Exe) = 0)'
+              '    or (CompareText(NshProgram(NshExpand(Command)), Exe) = 0) then'
+              "    RegDeleteValue(HKEY_CURRENT_USER, 'Software\Microsoft\Windows\CurrentVersion\Run', ValueName);"
+              'end;'
+              ''
+              'procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);'
+              'var'
+              '  Exe: String;'
+              'begin'
+              '  if CurUninstallStep <> usUninstall then'
+              '    Exit;'
+              "  Exe := ExpandConstant('{app}') + '\Ramen.exe';"
+              "  NshRemoveRunValue('com.xcmm.ramen', Exe);"
+              "  NshRemoveRunValue('Ramen', Exe);"
+              'end;'
+            ) -join "`r`n"
+            $issContent = [regex]::Replace($issContent, $uninstallProcPattern, $unifiedUninstallCode)
             Set-Content -Path $_.FullName -Value $issContent -Encoding UTF8
 
             & $iscc "/O.nsh/out" $_.FullName

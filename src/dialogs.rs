@@ -72,15 +72,7 @@ fn settings_dialog_content() -> impl IntoElement {
             .child(
                 view()
                     .flex_row()
-                    .items_center()
-                    .justify_between()
-                    .gap_3()
-                    .child(toggle_switch(
-                        store::autostart_enabled,
-                        "开机自启",
-                        Some("开机自启"),
-                        store::set_autostart_enabled,
-                    ))
+                    .justify_end()
                     .child(action(ButtonKind::Secondary, "关闭", close)),
             ),
     )

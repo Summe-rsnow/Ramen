@@ -155,10 +155,11 @@ fn LargeResultsApp() -> impl IntoElement {
 fn app_shell_renders_titlebar_order_theme_and_dialogs() -> Result<(), String> {
     let mut app = start_desktop::<nsh_app_ramen::App>(1040.0, 680.0)?;
     app.wait_for("Ramen")?;
-    assert!(app.screen().shows("v1.1.0"));
+    assert!(app.screen().shows("v1.1.1"));
 
-    // Verify title-bar right-hand controls place action icons left of the theme switcher
+    // Verify title-bar right-hand controls place autostart + action icons left of the theme switcher
     let layout = app.screen().layout_nodes();
+    let autostart_id = app.screen().id("label:开机自启")?;
     let refresh_id = app.screen().id("role:button[刷新或重新连接]")?;
     let settings_id = app.screen().id("role:button[设置与快捷键]")?;
     let about_id = app.screen().id("role:button[关于]")?;
@@ -170,6 +171,7 @@ fn app_shell_renders_titlebar_order_theme_and_dialogs() -> Result<(), String> {
             .map(|n| n.bounds.origin.x.0)
             .ok_or_else(|| format!("missing layout bounds for {id:?}"))
     };
+    assert!(x_of(autostart_id)? < x_of(refresh_id)?);
     assert!(x_of(refresh_id)? < x_of(settings_id)?);
     assert!(x_of(settings_id)? < x_of(about_id)?);
     assert!(x_of(about_id)? < x_of(theme_id)?);
@@ -187,7 +189,6 @@ fn app_shell_renders_titlebar_order_theme_and_dialogs() -> Result<(), String> {
     assert!(app.screen().shows("文件变化时自动刷新搜索结果"));
     assert!(app.screen().shows("后台索引服务 (gozd v0.7.1)"));
     assert!(app.screen().shows("安装 / 升级 goz v0.7.1"));
-    assert!(app.screen().shows("开机自启"));
 
     app.press("关闭")?;
     app.wait_for_gone("设置与服务", Duration::from_secs(2))?;
@@ -202,7 +203,7 @@ fn app_shell_renders_titlebar_order_theme_and_dialogs() -> Result<(), String> {
     app.press("label:关于 Ramen")?;
     app.wait_for("版本更新")?;
     assert!(app.screen().shows("Summe-rsnow/Ramen"));
-    assert!(app.screen().shows("v1.1.0"));
+    assert!(app.screen().shows("v1.1.1"));
     app.press("关闭")?;
     app.wait_for_gone("版本更新", Duration::from_secs(2))?;
 
@@ -446,17 +447,10 @@ fn settings_volume_long_path_truncates_without_clipping_stats_and_hovers() -> Re
     // Hovering over the truncated volume path should succeed cleanly.
     app.hover(long_guid)?;
 
-    // Bottom-left autostart switch sits left of the bottom-right Close button and toggles cleanly.
-    let autostart_id = app.screen().id("label:开机自启")?;
-    let close_id = app.screen().id("关闭")?;
-    let autostart_bounds = bounds_of(autostart_id)?;
-    let close_bounds = bounds_of(close_id)?;
-    assert!(
-        autostart_bounds.origin.x.0 < close_bounds.origin.x.0,
-        "expected autostart toggle ({}) left of Close button ({})",
-        autostart_bounds.origin.x.0,
-        close_bounds.origin.x.0
-    );
+    app.press("关闭")?;
+    app.wait_for_gone("设置与服务", Duration::from_secs(2))?;
+
+    // Unified title-bar autostart switch toggles cleanly in test mode without touching the live registry.
     assert_eq!(
         app.screen().accessibility_state("label:开机自启")?.checked,
         Some(Checked::False)
@@ -471,9 +465,6 @@ fn settings_volume_long_path_truncates_without_clipping_stats_and_hovers() -> Re
         app.screen().accessibility_state("label:开机自启")?.checked,
         Some(Checked::False)
     );
-
-    app.press("关闭")?;
-    app.wait_for_gone("设置与服务", Duration::from_secs(2))?;
 
     Ok(())
 }
