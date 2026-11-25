@@ -24,7 +24,8 @@ use goz_core::proto::PIPE_NAME;
 
 const READ_DEADLINE: Duration = Duration::from_secs(30);
 const POLL_INTERVAL: Duration = Duration::from_millis(5);
-const WATCH_POLL_INTERVAL: Duration = Duration::from_millis(50);
+const WATCH_POLL_INTERVAL: Duration = Duration::from_millis(25);
+const SHUTDOWN_JOIN_TIMEOUT: Duration = Duration::from_millis(250);
 
 /// Errors returned by [`GozClient`].
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -160,14 +161,25 @@ impl<P: PipeIo> FramedPipe<P> {
         }
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn hello(&mut self) -> Result<HelloInfo, ClientError> {
+        self.hello_cancellable(&|| false)
+    }
+
+    pub(crate) fn hello_cancellable(
+        &mut self,
+        cancelled: &dyn Fn() -> bool,
+    ) -> Result<HelloInfo, ClientError> {
+        if cancelled() {
+            return Err(ClientError::Protocol("hello cancelled".to_owned()));
+        }
         let req = Request::Hello {
             proto_min: PROTO_VERSION,
             proto_max: PROTO_VERSION,
             client: format!("ramen {}", env!("CARGO_PKG_VERSION")),
         };
         self.send(&req)?;
-        match self.next_response(Some(READ_DEADLINE), &|| false)? {
+        match self.next_response(Some(READ_DEADLINE), cancelled)? {
             Some(Response::Hello {
                 proto,
                 server,
@@ -192,9 +204,20 @@ impl<P: PipeIo> FramedPipe<P> {
         }
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn status(&mut self) -> Result<DaemonStatus, ClientError> {
+        self.status_cancellable(&|| false)
+    }
+
+    pub(crate) fn status_cancellable(
+        &mut self,
+        cancelled: &dyn Fn() -> bool,
+    ) -> Result<DaemonStatus, ClientError> {
+        if cancelled() {
+            return Err(ClientError::Protocol("status cancelled".to_owned()));
+        }
         self.send(&Request::Status)?;
-        match self.next_response(Some(READ_DEADLINE), &|| false)? {
+        match self.next_response(Some(READ_DEADLINE), cancelled)? {
             Some(Response::Status(status)) => Ok(status),
             Some(Response::Error { message, .. }) => Err(ClientError::Refused(message)),
             Some(_) => Err(ClientError::Protocol("unexpected reply to Status".to_owned())),
@@ -316,6 +339,11 @@ impl GozClient {
     /// Connects to `\\.\pipe\goz-v1` with `SECURITY_SQOS_PRESENT`, retries transient
     /// `ERROR_PIPE_BUSY`, and verifies server pipe ownership via `goz_winfs::pipe_server_is_trusted`.
     pub fn connect() -> Result<Self, ClientError> {
+        Self::connect_cancellable(&|| false)
+    }
+
+    /// Connects to `\\.\pipe\goz-v1`, aborting early if `cancelled()` becomes true.
+    pub fn connect_cancellable(cancelled: &dyn Fn() -> bool) -> Result<Self, ClientError> {
         #[cfg(target_os = "windows")]
         {
             use std::fs::OpenOptions;
@@ -329,6 +357,9 @@ impl GozClient {
 
             let mut attempts = 0u32;
             let pipe = loop {
+                if cancelled() {
+                    return Err(ClientError::Protocol("connect cancelled".to_owned()));
+                }
                 match OpenOptions::new()
                     .read(true)
                     .write(true)
@@ -342,6 +373,9 @@ impl GozClient {
                         }
                         Some(ERROR_PIPE_BUSY) if attempts < 20 => {
                             attempts += 1;
+                            if cancelled() {
+                                return Err(ClientError::Protocol("connect cancelled".to_owned()));
+                            }
                             thread::sleep(Duration::from_millis(25));
                         }
                         _ => {
@@ -352,6 +386,10 @@ impl GozClient {
                     },
                 }
             };
+
+            if cancelled() {
+                return Err(ClientError::Protocol("connect cancelled".to_owned()));
+            }
 
             match goz_winfs::pipe_server_is_trusted(pipe.as_handle()) {
                 Ok(true) => {}
@@ -364,30 +402,49 @@ impl GozClient {
         }
         #[cfg(not(target_os = "windows"))]
         {
+            let _ = cancelled;
             Err(ClientError::Unreachable)
         }
     }
 
     /// Performs the `Hello` protocol handshake and returns server capabilities.
     pub fn hello(&mut self) -> Result<HelloInfo, ClientError> {
+        self.hello_cancellable(&|| false)
+    }
+
+    /// Performs the `Hello` protocol handshake, aborting early when `cancelled()` is true.
+    pub fn hello_cancellable(
+        &mut self,
+        cancelled: &dyn Fn() -> bool,
+    ) -> Result<HelloInfo, ClientError> {
         #[cfg(target_os = "windows")]
         {
-            self.framed.hello()
+            self.framed.hello_cancellable(cancelled)
         }
         #[cfg(not(target_os = "windows"))]
         {
+            let _ = cancelled;
             Err(ClientError::Unreachable)
         }
     }
 
     /// Queries per-volume daemon index status.
     pub fn status(&mut self) -> Result<DaemonStatus, ClientError> {
+        self.status_cancellable(&|| false)
+    }
+
+    /// Queries per-volume daemon index status, aborting early when `cancelled()` is true.
+    pub fn status_cancellable(
+        &mut self,
+        cancelled: &dyn Fn() -> bool,
+    ) -> Result<DaemonStatus, ClientError> {
         #[cfg(target_os = "windows")]
         {
-            self.framed.status()
+            self.framed.status_cancellable(cancelled)
         }
         #[cfg(not(target_os = "windows"))]
         {
+            let _ = cancelled;
             Err(ClientError::Unreachable)
         }
     }
@@ -422,12 +479,19 @@ impl GozClient {
 
     /// Starts a dedicated Watch stream on this connection (`Request::Watch`).
     #[cfg(target_os = "windows")]
-    fn start_watch(&mut self, min_interval_ms: u32) -> Result<(), ClientError> {
+    fn start_watch(
+        &mut self,
+        min_interval_ms: u32,
+        cancelled: &dyn Fn() -> bool,
+    ) -> Result<(), ClientError> {
+        if cancelled() {
+            return Err(ClientError::Protocol("watch handshake cancelled".to_owned()));
+        }
         self.framed.send(&Request::Watch {
             volumes: None,
             min_interval_ms,
         })?;
-        match self.framed.next_response(Some(READ_DEADLINE), &|| false)? {
+        match self.framed.next_response(Some(READ_DEADLINE), cancelled)? {
             Some(Response::Watching) => Ok(()),
             Some(Response::Error { message, .. }) => Err(ClientError::Refused(message)),
             Some(_) => Err(ClientError::Protocol("unexpected reply to Watch".to_owned())),
@@ -544,11 +608,44 @@ struct EngineShared {
     shutdown: AtomicBool,
     auto_refresh_on_change: AtomicBool,
     watch_enabled: AtomicBool,
+    query_done: AtomicBool,
+    watch_done: AtomicBool,
     inbox: Mutex<QueryInbox>,
     query_cv: Condvar,
     watch_lock: Mutex<()>,
     watch_cv: Condvar,
+    done_lock: Mutex<()>,
+    done_cv: Condvar,
     events: Mutex<VecDeque<EngineEvent>>,
+}
+
+struct WorkerExitGuard<'a> {
+    done: &'a AtomicBool,
+    shared: &'a EngineShared,
+}
+
+impl Drop for WorkerExitGuard<'_> {
+    fn drop(&mut self) {
+        self.done.store(true, Ordering::Release);
+        let _guard = self.shared.done_lock.lock();
+        self.shared.done_cv.notify_all();
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn cancel_synchronous_io(handle: &JoinHandle<()>) {
+    use std::ffi::c_void;
+    use std::os::windows::io::AsRawHandle;
+
+    unsafe extern "system" {
+        fn CancelSynchronousIo(h_thread: *mut c_void) -> i32;
+    }
+
+    // SAFETY: `handle.as_raw_handle()` is a live Win32 thread handle owned by `JoinHandle`
+    // for the duration of this call; `CancelSynchronousIo` safely returns 0 if no I/O is pending.
+    unsafe {
+        let _ = CancelSynchronousIo(handle.as_raw_handle());
+    }
 }
 
 impl EngineShared {
@@ -593,6 +690,8 @@ impl SearchEngine {
             shutdown: AtomicBool::new(false),
             auto_refresh_on_change: AtomicBool::new(true),
             watch_enabled: AtomicBool::new(false),
+            query_done: AtomicBool::new(false),
+            watch_done: AtomicBool::new(false),
             inbox: Mutex::new(QueryInbox {
                 probe_requested: true,
                 ..QueryInbox::default()
@@ -600,6 +699,8 @@ impl SearchEngine {
             query_cv: Condvar::new(),
             watch_lock: Mutex::new(()),
             watch_cv: Condvar::new(),
+            done_lock: Mutex::new(()),
+            done_cv: Condvar::new(),
             events: Mutex::new(VecDeque::new()),
         });
 
@@ -668,18 +769,52 @@ impl SearchEngine {
         self.shared.events.lock().drain(..).collect()
     }
 
-    /// Signals background workers to shut down and joins them.
+    /// Signals background workers to shut down, cancels pending synchronous pipe I/O on Windows,
+    /// and waits up to [`SHUTDOWN_JOIN_TIMEOUT`] so app exit never hangs on a stalled daemon.
     pub fn shutdown(&mut self) {
         self.shared.shutdown.store(true, Ordering::Release);
+        self.shared.watch_enabled.store(false, Ordering::Release);
         self.shared.latest_gen.fetch_add(1, Ordering::AcqRel);
         self.shared.query_cv.notify_all();
         self.shared.watch_cv.notify_all();
 
+        #[cfg(target_os = "windows")]
+        {
+            if let Some(handle) = &self.query_thread {
+                cancel_synchronous_io(handle);
+            }
+            if let Some(handle) = &self.watch_thread {
+                cancel_synchronous_io(handle);
+            }
+        }
+
+        if self.query_thread.is_some() || self.watch_thread.is_some() {
+            let deadline = Instant::now() + SHUTDOWN_JOIN_TIMEOUT;
+            let mut guard = self.shared.done_lock.lock();
+            while (self.query_thread.is_some() && !self.shared.query_done.load(Ordering::Acquire))
+                || (self.watch_thread.is_some()
+                    && !self.shared.watch_done.load(Ordering::Acquire))
+            {
+                if Instant::now() >= deadline {
+                    break;
+                }
+                let _ = self.shared.done_cv.wait_until(&mut guard, deadline);
+            }
+        }
+
         if let Some(handle) = self.query_thread.take() {
-            let _ = handle.join();
+            if self.shared.query_done.load(Ordering::Acquire) {
+                let _ = handle.join();
+            } else {
+                log::warn!("Detaching blocked goz query worker thread during shutdown");
+            }
         }
         if let Some(handle) = self.watch_thread.take() {
-            let _ = handle.join();
+            if self.shared.watch_done.load(Ordering::Acquire) {
+                let _ = handle.join();
+            } else {
+                log::warn!("Detaching blocked goz watch worker thread during shutdown");
+            }
         }
     }
 }
@@ -732,6 +867,10 @@ fn next_work_item(shared: &EngineShared) -> Option<WorkItem> {
 }
 
 fn query_worker_loop(shared: &EngineShared) {
+    let _exit = WorkerExitGuard {
+        done: &shared.query_done,
+        shared,
+    };
     while let Some(item) = next_work_item(shared) {
         match item {
             WorkItem::Probe => run_probe(shared),
@@ -742,6 +881,9 @@ fn query_worker_loop(shared: &EngineShared) {
 }
 
 fn emit_connection_error(shared: &EngineShared, err: ClientError) {
+    if shared.shutdown.load(Ordering::Acquire) {
+        return;
+    }
     shared.set_watch_enabled(false);
     match err {
         ClientError::Unreachable => {
@@ -758,7 +900,12 @@ fn emit_connection_error(shared: &EngineShared, err: ClientError) {
 }
 
 fn run_probe(shared: &EngineShared) {
-    let mut client = match GozClient::connect() {
+    let is_shutdown = || shared.shutdown.load(Ordering::Acquire);
+    if is_shutdown() {
+        return;
+    }
+
+    let mut client = match GozClient::connect_cancellable(&is_shutdown) {
         Ok(c) => c,
         Err(e) => {
             emit_connection_error(shared, e);
@@ -766,13 +913,17 @@ fn run_probe(shared: &EngineShared) {
         }
     };
 
-    let hello = match client.hello() {
+    let hello = match client.hello_cancellable(&is_shutdown) {
         Ok(h) => h,
         Err(e) => {
             emit_connection_error(shared, e);
             return;
         }
     };
+
+    if is_shutdown() {
+        return;
+    }
 
     let supports_watch = hello.has_feature(feature::WATCH);
     let version_matches = server_matches_pinned(&hello.server);
@@ -785,22 +936,31 @@ fn run_probe(shared: &EngineShared) {
     }));
     shared.set_watch_enabled(supports_watch);
 
-    if let Ok(status) = client.status() {
-        shared.push_event(EngineEvent::StatusUpdated(status));
+    if let Ok(status) = client.status_cancellable(&is_shutdown) {
+        if !is_shutdown() {
+            shared.push_event(EngineEvent::StatusUpdated(status));
+        }
     }
 }
 
 fn run_status(shared: &EngineShared) {
-    let mut client = match GozClient::connect() {
+    let is_shutdown = || shared.shutdown.load(Ordering::Acquire);
+    if is_shutdown() {
+        return;
+    }
+
+    let mut client = match GozClient::connect_cancellable(&is_shutdown) {
         Ok(c) => c,
         Err(e) => {
             emit_connection_error(shared, e);
             return;
         }
     };
-    match client.status() {
+    match client.status_cancellable(&is_shutdown) {
         Ok(status) => {
-            shared.push_event(EngineEvent::StatusUpdated(status));
+            if !is_shutdown() {
+                shared.push_event(EngineEvent::StatusUpdated(status));
+            }
         }
         Err(e) => {
             emit_connection_error(shared, e);
@@ -817,7 +977,7 @@ fn run_search(shared: &EngineShared, generation: u64, params: SearchParams) {
         return;
     }
 
-    let mut client = match GozClient::connect() {
+    let mut client = match GozClient::connect_cancellable(&is_stale) {
         Ok(c) => c,
         Err(e) => {
             emit_connection_error(shared, e.clone());
@@ -865,6 +1025,10 @@ fn run_search(shared: &EngineShared, generation: u64, params: SearchParams) {
 }
 
 fn watch_worker_loop(shared: &EngineShared) {
+    let _exit = WorkerExitGuard {
+        done: &shared.watch_done,
+        shared,
+    };
     loop {
         {
             let mut guard = shared.watch_lock.lock();
@@ -892,7 +1056,14 @@ fn watch_worker_loop(shared: &EngineShared) {
 
 #[cfg(target_os = "windows")]
 fn run_windows_watch_session(shared: &EngineShared) {
-    let mut client = match GozClient::connect() {
+    let should_stop = || {
+        shared.shutdown.load(Ordering::Acquire) || !shared.watch_enabled.load(Ordering::Acquire)
+    };
+    if should_stop() {
+        return;
+    }
+
+    let mut client = match GozClient::connect_cancellable(&should_stop) {
         Ok(c) => c,
         Err(e) => {
             emit_connection_error(shared, e);
@@ -900,7 +1071,7 @@ fn run_windows_watch_session(shared: &EngineShared) {
         }
     };
 
-    let hello = match client.hello() {
+    let hello = match client.hello_cancellable(&should_stop) {
         Ok(h) => h,
         Err(e) => {
             emit_connection_error(shared, e);
@@ -912,14 +1083,10 @@ fn run_windows_watch_session(shared: &EngineShared) {
         return;
     }
 
-    if let Err(e) = client.start_watch(250) {
+    if let Err(e) = client.start_watch(250, &should_stop) {
         emit_connection_error(shared, e);
         return;
     }
-
-    let should_stop = || {
-        shared.shutdown.load(Ordering::Acquire) || !shared.watch_enabled.load(Ordering::Acquire)
-    };
 
     loop {
         if should_stop() {
@@ -1155,10 +1322,14 @@ mod tests {
             shutdown: AtomicBool::new(false),
             auto_refresh_on_change: AtomicBool::new(true),
             watch_enabled: AtomicBool::new(false),
+            query_done: AtomicBool::new(false),
+            watch_done: AtomicBool::new(false),
             inbox: Mutex::new(QueryInbox::default()),
             query_cv: Condvar::new(),
             watch_lock: Mutex::new(()),
             watch_cv: Condvar::new(),
+            done_lock: Mutex::new(()),
+            done_cv: Condvar::new(),
             events: Mutex::new(VecDeque::new()),
         };
 
@@ -1205,5 +1376,86 @@ mod tests {
             }
         );
         assert!(shared.events.lock().is_empty());
+    }
+
+    #[test]
+    fn hello_and_status_abort_immediately_when_cancelled() {
+        let mut pipe = FramedPipe::new(ScriptedPipe::new(Vec::new()));
+        let hello_err = pipe.hello_cancellable(&|| true).unwrap_err();
+        assert_eq!(hello_err, ClientError::Protocol("hello cancelled".to_owned()));
+
+        let status_err = pipe.status_cancellable(&|| true).unwrap_err();
+        assert_eq!(
+            status_err,
+            ClientError::Protocol("status cancelled".to_owned())
+        );
+    }
+
+    #[test]
+    fn search_engine_shutdown_completes_promptly_even_when_worker_is_blocked() {
+        let shared = Arc::new(EngineShared {
+            latest_gen: AtomicU64::new(0),
+            shutdown: AtomicBool::new(false),
+            auto_refresh_on_change: AtomicBool::new(true),
+            watch_enabled: AtomicBool::new(false),
+            query_done: AtomicBool::new(false),
+            watch_done: AtomicBool::new(false),
+            inbox: Mutex::new(QueryInbox::default()),
+            query_cv: Condvar::new(),
+            watch_lock: Mutex::new(()),
+            watch_cv: Condvar::new(),
+            done_lock: Mutex::new(()),
+            done_cv: Condvar::new(),
+            events: Mutex::new(VecDeque::new()),
+        });
+
+        let gate = Arc::new((Mutex::new(false), Condvar::new()));
+        let gate_worker = Arc::clone(&gate);
+        let shared_worker = Arc::clone(&shared);
+        let blocked_query = thread::spawn(move || {
+            let _exit = WorkerExitGuard {
+                done: &shared_worker.query_done,
+                shared: &shared_worker,
+            };
+            let (lock, cv) = &*gate_worker;
+            let mut released = lock.lock();
+            while !*released {
+                cv.wait(&mut released);
+            }
+        });
+
+        let mut engine = SearchEngine {
+            shared,
+            query_thread: Some(blocked_query),
+            watch_thread: None,
+        };
+
+        let start = Instant::now();
+        engine.shutdown();
+        let elapsed = start.elapsed();
+
+        // Release the synthetic blocked thread so the test process exits cleanly.
+        {
+            let (lock, cv) = &*gate;
+            *lock.lock() = true;
+            cv.notify_all();
+        }
+
+        assert!(
+            elapsed < Duration::from_secs(1),
+            "shutdown should detach blocked worker within timeout, took {elapsed:?}"
+        );
+    }
+
+    #[test]
+    fn search_engine_normal_shutdown_joins_promptly() {
+        let mut engine = SearchEngine::new();
+        let start = Instant::now();
+        engine.shutdown();
+        let elapsed = start.elapsed();
+        assert!(
+            elapsed < Duration::from_secs(1),
+            "normal SearchEngine::shutdown took too long: {elapsed:?}"
+        );
     }
 }

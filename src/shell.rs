@@ -14,7 +14,9 @@ use bento::shell::{
     title_bar_shell, CloseBehavior, DEFAULT_WINDOW_PLACEMENT_KEY,
 };
 use nsh_base::theme;
-use nsh_core::element::desktop::{current_window, quit, set_tray, tray, MenuItem, WindowRef};
+use nsh_core::element::desktop::{
+    current_window, on_app_quit, quit, set_tray, tray, MenuItem, WindowRef,
+};
 use nsh_core::keymap::When;
 use nsh_core::prelude::*;
 
@@ -58,6 +60,10 @@ pub fn screen() -> impl IntoElement {
     // Background SearchEngine event poller (32ms) and floating notice auto-dismiss
     store::start_engine_poller();
     store::notices().install_auto_dismiss();
+    on_app_quit(|| {
+        store::shutdown_engine();
+        std::future::ready(())
+    });
     cleanup(store::shutdown_engine);
 
     // Intercept close button according to user's CloseBehavior preference
