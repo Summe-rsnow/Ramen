@@ -12,7 +12,7 @@ use crate::goz::{DaemonServiceState, VolumePhase, PINNED_GOZ_VERSION};
 use crate::store::{self, DaemonUiState};
 use crate::ui::{
     action, action_disabled, action_sm, card, confirm_dialog, divider, format_bytes, format_count,
-    hotkey_editor, icons, meta_row, modal_dialog, mono_font, radio_option, radius,
+    hint_tooltip, hotkey_editor, icons, meta_row, modal_dialog, radio_option, radius,
     section_header, status_badge, toggle_switch, ButtonKind, ValueTone,
 };
 
@@ -72,7 +72,15 @@ fn settings_dialog_content() -> impl IntoElement {
             .child(
                 view()
                     .flex_row()
-                    .justify_end()
+                    .items_center()
+                    .justify_between()
+                    .gap_3()
+                    .child(toggle_switch(
+                        store::autostart_enabled,
+                        "开机自启",
+                        Some("开机自启"),
+                        store::set_autostart_enabled,
+                    ))
                     .child(action(ButtonKind::Secondary, "关闭", close)),
             ),
     )
@@ -232,7 +240,7 @@ fn settings_service_section() -> impl IntoElement {
                     "目标服务版本",
                     text(format!("gozd v{PINNED_GOZ_VERSION}"))
                         .text_xs()
-                        .font_family(mono_font)
+                        .tabular_nums()
                         .text_color(move || theme().foreground),
                 ))
                 .child(when(
@@ -372,6 +380,7 @@ fn volume_list_view() -> impl IntoElement {
                         _ => format!("{} 项", format_count(vol.entries)),
                     };
 
+                    let full_path = mounts.clone();
                     view()
                         .px_3()
                         .py_2()
@@ -385,20 +394,34 @@ fn volume_list_view() -> impl IntoElement {
                         .gap_2()
                         .child(
                             view()
+                                .flex_1()
+                                .min_w(px(0.0))
                                 .flex_row()
                                 .items_center()
                                 .gap_2()
                                 .child(
-                                    text(mounts)
-                                        .text_xs()
-                                        .font_family(mono_font)
-                                        .font_weight(FontWeight::SEMIBOLD)
-                                        .text_color(move || theme().foreground),
+                                    view()
+                                        .min_w(px(0.0))
+                                        .flex_shrink(1.0)
+                                        .max_w(px(200.0))
+                                        .overflow_hidden()
+                                        .tooltip(hint_tooltip(full_path))
+                                        .child(
+                                            text(mounts)
+                                                .min_w(px(0.0))
+                                                .flex_shrink(1.0)
+                                                .truncate()
+                                                .text_xs()
+                                                .font_weight(FontWeight::MEDIUM)
+                                                .text_color(move || theme().foreground),
+                                        ),
                                 )
                                 .child(status_badge(phase_label, phase_tone)),
                         )
                         .child(
                             text(detail)
+                                .flex_shrink_0()
+                                .number_of_lines(1)
                                 .text_xs()
                                 .tabular_nums()
                                 .text_color(move || theme().muted_foreground),

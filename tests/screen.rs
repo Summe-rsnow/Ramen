@@ -9,6 +9,7 @@ use nsh_app_ramen::goz::{
 };
 use nsh_app_ramen::{shell, store};
 use nsh_base::theme;
+use nsh_core::Checked;
 use nsh_core::platform::{Idiom, Os};
 use nsh_core::prelude::*;
 use nsh_engine::{EngineConfig, Points, Root, Size};
@@ -154,7 +155,7 @@ fn LargeResultsApp() -> impl IntoElement {
 fn app_shell_renders_titlebar_order_theme_and_dialogs() -> Result<(), String> {
     let mut app = start_desktop::<nsh_app_ramen::App>(1040.0, 680.0)?;
     app.wait_for("Ramen")?;
-    assert!(app.screen().shows("v1.0.2"));
+    assert!(app.screen().shows("v1.1.0"));
 
     // Verify title-bar right-hand controls place action icons left of the theme switcher
     let layout = app.screen().layout_nodes();
@@ -186,6 +187,7 @@ fn app_shell_renders_titlebar_order_theme_and_dialogs() -> Result<(), String> {
     assert!(app.screen().shows("文件变化时自动刷新搜索结果"));
     assert!(app.screen().shows("后台索引服务 (gozd v0.7.1)"));
     assert!(app.screen().shows("安装 / 升级 goz v0.7.1"));
+    assert!(app.screen().shows("开机自启"));
 
     app.press("关闭")?;
     app.wait_for_gone("设置与服务", Duration::from_secs(2))?;
@@ -200,7 +202,7 @@ fn app_shell_renders_titlebar_order_theme_and_dialogs() -> Result<(), String> {
     app.press("label:关于 Ramen")?;
     app.wait_for("版本更新")?;
     assert!(app.screen().shows("Summe-rsnow/Ramen"));
-    assert!(app.screen().shows("v1.0.2"));
+    assert!(app.screen().shows("v1.1.0"));
     app.press("关闭")?;
     app.wait_for_gone("版本更新", Duration::from_secs(2))?;
 
@@ -355,6 +357,123 @@ fn virtual_list_scrolls_and_recycles_many_results() -> Result<(), String> {
 
     app.scroll("id:results-list", Points(4500.0))?;
     app.wait_for("item_119.txt")?;
+
+    Ok(())
+}
+
+#[component]
+fn LongVolumePathApp() -> impl IntoElement {
+    let mut status = sample_status(false, false);
+    status.volumes.push(VolumeStatus {
+        guid: r"\\?\Volume{99c34014-e422-4361-8f7a-5e02e6a4d391}\".to_owned(),
+        mounts: Vec::new(),
+        phase: VolumePhase::Live,
+        entries: 39,
+        generation: 1,
+        metadata_pending: false,
+        journal_max_bytes: None,
+        has_orphans: false,
+        has_parent_cycle: false,
+        names_waiting: 0,
+        placeholders_created: 0,
+        delete_of_unknown: 0,
+        stale_slots: 0,
+        link_reconciles_dropped: 0,
+        memory: None,
+        columns: Vec::new(),
+    });
+    store::seed_results_for_test(sample_items(), status, false, false, false);
+    seeded_shell_wrapper()
+}
+
+#[test]
+fn settings_volume_long_path_truncates_without_clipping_stats_and_hovers() -> Result<(), String> {
+    let mut app = start_desktop::<LongVolumePathApp>(1040.0, 680.0)?;
+    app.wait_for("main.rs")?;
+
+    app.press("label:设置与快捷键")?;
+    app.wait_for("设置与服务")?;
+
+    let long_guid = r"\\?\Volume{99c34014-e422-4361-8f7a-5e02e6a4d391}\";
+    assert!(app.screen().shows(long_guid));
+    assert!(app.screen().shows("39 项"));
+
+    let layout = app.screen().layout_nodes();
+    let guid_id = app.screen().id(long_guid)?;
+    let stats_id = app.screen().id("39 项")?;
+    let bounds_of = |id| {
+        layout
+            .iter()
+            .find(|n| n.id == id)
+            .map(|n| n.bounds)
+            .ok_or_else(|| format!("missing layout bounds for {id:?}"))
+    };
+    let guid_bounds = bounds_of(guid_id)?;
+    let stats_bounds = bounds_of(stats_id)?;
+
+    // Long volume path must be constrained (<= 200pt) so it never pushes stats off-screen.
+    assert!(
+        guid_bounds.size.width.0 <= 200.5,
+        "expected volume path width <= 200pt, got {}",
+        guid_bounds.size.width.0
+    );
+    assert!(
+        guid_bounds.origin.x.0 + guid_bounds.size.width.0 < stats_bounds.origin.x.0,
+        "expected volume path right edge ({}) < stats left edge ({})",
+        guid_bounds.origin.x.0 + guid_bounds.size.width.0,
+        stats_bounds.origin.x.0
+    );
+    assert!(
+        stats_bounds.size.width.0 > 0.0,
+        "expected stats text to have positive width"
+    );
+
+    // Font consistency: volume path and target service version use the default UI font (not monospace).
+    assert!(
+        app.screen().span_style(long_guid)?.font_family.is_none(),
+        "expected volume path to use default UI font"
+    );
+    for idx in 0..3 {
+        assert!(
+            app.screen()
+                .span_style(&format!("gozd v0.7.1 >> nth={idx}"))?
+                .font_family
+                .is_none(),
+            "expected gozd v0.7.1 span #{idx} to use default UI font"
+        );
+    }
+
+    // Hovering over the truncated volume path should succeed cleanly.
+    app.hover(long_guid)?;
+
+    // Bottom-left autostart switch sits left of the bottom-right Close button and toggles cleanly.
+    let autostart_id = app.screen().id("label:开机自启")?;
+    let close_id = app.screen().id("关闭")?;
+    let autostart_bounds = bounds_of(autostart_id)?;
+    let close_bounds = bounds_of(close_id)?;
+    assert!(
+        autostart_bounds.origin.x.0 < close_bounds.origin.x.0,
+        "expected autostart toggle ({}) left of Close button ({})",
+        autostart_bounds.origin.x.0,
+        close_bounds.origin.x.0
+    );
+    assert_eq!(
+        app.screen().accessibility_state("label:开机自启")?.checked,
+        Some(Checked::False)
+    );
+    app.press("label:开机自启")?;
+    assert_eq!(
+        app.screen().accessibility_state("label:开机自启")?.checked,
+        Some(Checked::True)
+    );
+    app.press("label:开机自启")?;
+    assert_eq!(
+        app.screen().accessibility_state("label:开机自启")?.checked,
+        Some(Checked::False)
+    );
+
+    app.press("关闭")?;
+    app.wait_for_gone("设置与服务", Duration::from_secs(2))?;
 
     Ok(())
 }

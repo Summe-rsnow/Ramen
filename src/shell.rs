@@ -8,9 +8,10 @@
 
 use bento::hotkey::{bind_global_hotkey, toggle_window_visibility};
 use bento::shell::{
-    about_icon_button, bind_close_handler, close_behavior_submenu, confirm_close_dialog,
-    remember_window_placement, save_window_placement, title_bar_brand_clickable,
-    title_bar_right_with_theme, title_bar_shell, CloseBehavior, DEFAULT_WINDOW_PLACEMENT_KEY,
+    about_icon_button, autostart_menu_item, bind_close_handler, close_behavior_submenu,
+    confirm_close_dialog, remember_window_placement, save_window_placement,
+    title_bar_brand_clickable, title_bar_right_with_theme, title_bar_shell, CloseBehavior,
+    DEFAULT_WINDOW_PLACEMENT_KEY,
 };
 use nsh_base::theme;
 use nsh_core::element::desktop::{current_window, quit, set_tray, tray, MenuItem, WindowRef};
@@ -246,6 +247,7 @@ fn install_system_tray(win: &WindowRef, search_input_ref: ElementRef) {
     let win_tray = win.clone();
     effect(move || {
         let behavior = store::close_behavior();
+        let autostart = store::autostart_enabled();
         let tooltip = match store::daemon_state() {
             DaemonUiState::Connected { .. } => {
                 let entries = store::total_indexed_entries();
@@ -312,6 +314,7 @@ fn install_system_tray(win: &WindowRef, search_input_ref: ElementRef) {
                         store::set_about_open(true);
                     }),
                     MenuItem::separator(),
+                    autostart_menu_item(autostart, store::set_autostart_enabled),
                     close_behavior_submenu(behavior, store::set_close_behavior),
                     MenuItem::separator(),
                     MenuItem::new("退出 Ramen").on_select(quit),

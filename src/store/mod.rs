@@ -208,6 +208,9 @@ impl Default for AutoRefreshState {
 }
 
 #[derive(Default, Clone, PartialEq)]
+struct AutoStartState(bool);
+
+#[derive(Default, Clone, PartialEq)]
 struct ServiceActionBusy(bool);
 
 #[derive(Default, Clone, PartialEq)]
@@ -341,6 +344,9 @@ fn daemon_status_sig() -> Signal<DaemonStatusState> {
 }
 fn auto_refresh_sig() -> Signal<AutoRefreshState> {
     global::<AutoRefreshState>()
+}
+fn autostart_sig() -> Signal<AutoStartState> {
+    global::<AutoStartState>()
 }
 fn service_busy_sig() -> Signal<ServiceActionBusy> {
     global::<ServiceActionBusy>()
@@ -568,12 +574,21 @@ pub fn load() {
         .and_then(|raw| serde_json::from_str::<RamenPrefs>(&raw).ok())
         .unwrap_or_default();
 
+    let autostart = match bento::autostart::is_autostart_enabled(crate::APP_META.name) {
+        Ok(enabled) => enabled,
+        Err(err) => {
+            log::warn!("Failed to query autostart state: {err}");
+            false
+        }
+    };
+
     batch(|| {
         theme_mode_sig().set(ThemeModeState(prefs.theme_mode));
         close_behavior_sig().set(CloseBehaviorState(prefs.close_behavior));
         global_hotkey_sig().set(GlobalHotkeyState(prefs.global_hotkey));
         match_case_sig().set(MatchCase(prefs.match_case));
         auto_refresh_sig().set(AutoRefreshState(prefs.auto_refresh));
+        autostart_sig().set(AutoStartState(autostart));
         daemon_conn_sig().set(DaemonConnState(DaemonUiState::Connecting));
     });
 
@@ -606,6 +621,7 @@ pub fn seed_results_for_test(
     batch(|| {
         test_seeded_sig().set(TestSeededState(true));
         seeded_dataset_sig().set(SeededDatasetState(Some(items)));
+        autostart_sig().set(AutoStartState(false));
         daemon_conn_sig().set(DaemonConnState(DaemonUiState::Connected {
             server,
             ready: !volumes_incomplete,
@@ -632,6 +648,7 @@ pub fn seed_offline_for_test(service_state: DaemonServiceState) {
     batch(|| {
         test_seeded_sig().set(TestSeededState(true));
         seeded_dataset_sig().set(SeededDatasetState(None));
+        autostart_sig().set(AutoStartState(false));
         daemon_conn_sig().set(DaemonConnState(DaemonUiState::Offline(service_state)));
         daemon_status_sig().set(DaemonStatusState(None));
         results_sig().set(ResultsState(Vec::new()));
@@ -1020,6 +1037,34 @@ pub fn set_auto_refresh(enabled: bool) {
     persist_prefs();
 }
 
+pub fn autostart_enabled() -> bool {
+    autostart_sig().get().0
+}
+
+pub fn set_autostart_enabled(enabled: bool) {
+    if is_test_seeded() {
+        autostart_sig().set(AutoStartState(enabled));
+        return;
+    }
+    match bento::autostart::set_autostart_enabled(crate::APP_META.name, enabled) {
+        Ok(()) => {
+            autostart_sig().set(AutoStartState(enabled));
+            notices().notify_ok(if enabled {
+                "已开启开机自启"
+            } else {
+                "已关闭开机自启"
+            });
+        }
+        Err(err) => {
+            log::warn!("Failed to update autostart setting: {err}");
+            let actual = bento::autostart::is_autostart_enabled(crate::APP_META.name)
+                .unwrap_or(!enabled);
+            autostart_sig().set(AutoStartState(actual));
+            notices().notify_bad(format!("更新开机自启失败：{err}"));
+        }
+    }
+}
+
 // --- Preferences: Theme, CloseBehavior, Global Hotkey ---
 
 pub fn theme_mode() -> ThemeMode {
@@ -1084,6 +1129,11 @@ pub fn settings_open() -> bool {
 }
 
 pub fn set_settings_open(open: bool) {
+    if open && !is_test_seeded() {
+        if let Ok(actual) = bento::autostart::is_autostart_enabled(crate::APP_META.name) {
+            autostart_sig().set(AutoStartState(actual));
+        }
+    }
     settings_open_sig().set(SettingsOpen(open));
 }
 
