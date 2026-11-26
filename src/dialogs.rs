@@ -11,8 +11,8 @@ use nsh_core::prelude::*;
 use crate::goz::{DaemonServiceState, VolumePhase, PINNED_GOZ_VERSION};
 use crate::store::{self, DaemonUiState};
 use crate::ui::{
-    action, action_disabled, action_sm, card, confirm_dialog, divider, format_bytes, format_count,
-    hint_tooltip, hotkey_editor, icons, meta_row, modal_dialog, radio_option, radius,
+    action, action_busy, action_disabled, action_sm, card, confirm_dialog, divider, format_bytes,
+    format_count, hint_tooltip, hotkey_editor, icons, meta_row, modal_dialog, radio_option, radius,
     section_header, status_badge, toggle_switch, ButtonKind, ValueTone,
 };
 
@@ -288,34 +288,48 @@ fn settings_service_section() -> impl IntoElement {
                 .flex_wrap()
                 .items_center()
                 .gap_2()
-                .child(action_disabled(
-                    ButtonKind::Primary,
-                    format!("安装 / 升级 goz v{PINNED_GOZ_VERSION}"),
-                    move || {
-                        store::service_action_busy()
-                            || matches!(
+                .child(
+                    when(
+                        move || {
+                            !matches!(
                                 store::daemon_state(),
                                 DaemonUiState::Offline(DaemonServiceState::UnsupportedPlatform)
                             )
-                    },
-                    store::install_or_upgrade_service_action,
-                ))
+                        },
+                        || {
+                            action_busy(
+                                ButtonKind::Primary,
+                                format!("安装 / 升级 goz v{PINNED_GOZ_VERSION}"),
+                                store::service_action_busy,
+                                store::install_or_upgrade_service_action,
+                            )
+                        },
+                    )
+                    .otherwise(|| {
+                        action_disabled(
+                            ButtonKind::Primary,
+                            format!("安装 / 升级 goz v{PINNED_GOZ_VERSION}"),
+                            || true,
+                            store::install_or_upgrade_service_action,
+                        )
+                    }),
+                )
                 .child(when(can_start_existing, || {
-                    action_disabled(
+                    action_busy(
                         ButtonKind::Secondary,
                         "启动服务",
                         store::service_action_busy,
                         store::start_service_action,
                     )
                 }))
-                .child(action_disabled(
+                .child(action_busy(
                     ButtonKind::Secondary,
                     "刷新状态",
                     store::service_action_busy,
                     store::reconnect_or_refresh,
                 ))
                 .child(when(can_uninstall, || {
-                    action_disabled(
+                    action_busy(
                         ButtonKind::Destructive,
                         "卸载服务…",
                         store::service_action_busy,

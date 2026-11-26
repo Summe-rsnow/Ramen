@@ -649,6 +649,12 @@ pub fn seed_offline_for_test(service_state: DaemonServiceState) {
     });
 }
 
+/// Pushes a live [`DaemonStatus`] tick in tests (simulating USN watch updates).
+#[doc(hidden)]
+pub fn update_daemon_status_for_test(status: DaemonStatus) {
+    set_daemon_status(status);
+}
+
 fn refresh_seeded_results() {
     let Some(dataset) = seeded_dataset_sig().get_untracked().0 else {
         return;

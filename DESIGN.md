@@ -2,9 +2,9 @@
 
 ## 1. Product Purpose & Targets
 
-**Ramen** is an ultra-fast native desktop file search utility (an Everything replacement powered by the [`goz`](https://github.com/mustafaahci/goz) NTFS MFT + USN journal daemon `v0.7.1`), built on **Native Shell (NSH 0.6.1)** and the shared **`Bento`** UI/desktop toolkit (`bento`).
+**Ramen** is an ultra-fast native desktop file search utility (an Everything replacement powered by the [`goz`](https://github.com/mustafaahci/goz) NTFS MFT + USN journal daemon `v0.7.1`), built on **Native Shell (NSH 0.7.1)** and the shared **`Bento`** UI/desktop toolkit (`bento`).
 
-- **Primary target**: Windows desktop (`minSize: 820x540`, native hidden `48px` title bar, system tray, optional global summon hotkey, pointer + keyboard-first workflow).
+- **Primary target**: Windows desktop (`bento::shell::desktop_window`, Window Model v2 `Target::Own`, `minSize: 820x540`, native hidden `48px` title bar, system tray with `restore_and_focus_window`, optional global summon hotkey, pointer + keyboard-first workflow).
 - **Secondary compatibility**: macOS and Linux desktop builds compile cleanly and display a clear platform-support state explaining that NTFS MFT indexing via `gozd` is Windows-only.
 - **Visual family**: Shares the `Bento` / `Wonton` / `Sundae` desktop family design language — quiet, high-contrast Light & Dark semantic tokens (`theme.json`), `0.5rem` (`8px`) base radius, crisp hairlines, stable alignment spines, and virtualized result rows (`virtual_list`) for zero-jank browsing across tens of thousands of instant file matches.
 
@@ -76,7 +76,7 @@ All colors in presentation code are consumed strictly via `nsh_base::theme()` an
    - Right: `bento::shell::title_bar_right_with_theme` hosting Settings icon button, About icon button, `toolbar_separator()`, and `System / Light / Dark` theme segmented switcher at the far right before native window captions.
 
 2. **Search Bar**:
-   - Prominent single-line `search_input` (`40px` height) with auto-focus on window open or global hotkey summon (`Alt+Space` when enabled).
+   - Prominent single-line `search_input` (`40px` height) with `auto_focus(true)` and `select_text_on_focus(true)` so window open or global hotkey summon (`Alt+Space` when enabled) lets users type-replace immediately.
    - Trailing inline controls inside or aligned beside the input:
      - Clear (`×`) button when query is non-empty.
      - Case-sensitivity toggle (`Aa` — `match_case`), with persistent `selected` fill.
@@ -109,7 +109,7 @@ All colors in presentation code are consumed strictly via `nsh_base::theme()` an
    - Centered `bento::ui::card` (`max-w-[480px]`, `p-6`, `gap-4`):
      - Header icon + clear state title (e.g., `"Install Search Service"`, `"Search Service Stopped"`, `"Upgrade Search Service to v0.7.1"`).
      - Concise 1–2 sentence explanation of why elevation/service is needed (NTFS MFT + USN journal access via `gozd v0.7.1` installed to `Program Files\goz\gozd.exe`, verified by SHA-256).
-     - Primary button (`Install & Start Service` / `Start Service` / `Upgrade Service`) disabled with inline progress label while downloading, verifying SHA-256, or awaiting UAC elevation.
+     - Primary button (`Install & Start Service` / `Start Service` / `Upgrade Service`) uses `bento::ui::action_busy` (disabled + screen-reader busy state with inline progress label) while downloading, verifying SHA-256, or awaiting UAC elevation.
      - Retry / Refresh Status secondary button and clear inline error text if UAC is cancelled or network download fails.
 
 6. **Dialogs**:

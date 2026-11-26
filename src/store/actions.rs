@@ -289,7 +289,7 @@ pub fn reveal_entry(row: &SearchRow) {
 
 /// Copies `value` to the system clipboard and displays a confirmation toast.
 pub fn copy_path(value: &str, kind_label: &str) {
-    set_clipboard(value);
+    let _ = set_clipboard(value);
     notices().notify_ok(format!("已复制{kind_label}：{value}"));
 }
 

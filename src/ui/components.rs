@@ -168,6 +168,7 @@ pub fn search_toolbar_input(
                 .on_selection_change(on_selection_change)
                 .submit_behavior(SubmitBehavior::Submit)
                 .auto_focus(true)
+                .select_text_on_focus(true)
                 .placeholder("搜索文件、文件夹或 goz 语法 (如 *.rs, ext:pdf, size:>10mb)…")
                 .placeholder_color(|| color(theme().muted_foreground))
                 .caret_color(|| color(theme().primary))

@@ -9,9 +9,9 @@
 use bento::hotkey::{bind_global_hotkey, toggle_window_visibility};
 use bento::shell::{
     about_icon_button, autostart_tray_item, bind_close_handler, close_behavior_submenu,
-    confirm_close_dialog, remember_window_placement, save_window_placement,
-    title_bar_autostart_toggle, title_bar_brand_clickable, title_bar_right_with_theme,
-    title_bar_shell, CloseBehavior, DEFAULT_WINDOW_PLACEMENT_KEY,
+    confirm_close_dialog, remember_window_placement, restore_and_focus_window,
+    save_window_placement, title_bar_autostart_toggle, title_bar_brand_clickable,
+    title_bar_right_with_theme, title_bar_shell, CloseBehavior, DEFAULT_WINDOW_PLACEMENT_KEY,
 };
 use nsh_base::theme;
 use nsh_core::element::desktop::{
@@ -251,22 +251,15 @@ pub fn screen() -> impl IntoElement {
 
 fn install_system_tray(win: &WindowRef, search_input_ref: ElementRef) {
     let win_tray = win.clone();
+    // Memoize coarse connection state so high-frequency `StatusUpdated` / USN watch
+    // ticks never re-run `set_tray` and invalidate item IDs in an open tray menu.
+    let daemon_connected = computed(store::is_connected);
     effect(move || {
         let behavior = store::close_behavior();
-        let tooltip = match store::daemon_state() {
-            DaemonUiState::Connected { .. } => {
-                let entries = store::total_indexed_entries();
-                if entries > 0 {
-                    format!(
-                        "Ramen v{} — goz v{PINNED_GOZ_VERSION} ({} 项索引)",
-                        crate::APP_VERSION,
-                        format_count(entries)
-                    )
-                } else {
-                    format!("Ramen v{} — 已连接 goz v{PINNED_GOZ_VERSION}", crate::APP_VERSION)
-                }
-            }
-            _ => format!("Ramen v{} — Windows 全盘文件极速搜索", crate::APP_VERSION),
+        let tooltip = if daemon_connected.get() {
+            format!("Ramen v{} — 已连接 goz v{PINNED_GOZ_VERSION}", crate::APP_VERSION)
+        } else {
+            format!("Ramen v{} — Windows 全盘文件极速搜索", crate::APP_VERSION)
         };
 
         let win_click = win_tray.clone();
@@ -299,23 +292,17 @@ fn install_system_tray(win: &WindowRef, search_input_ref: ElementRef) {
                             );
                             win_toggle.hide();
                         } else {
-                            win_toggle.restore();
-                            win_toggle.show();
-                            win_toggle.focus();
+                            restore_and_focus_window(&win_toggle);
                             search_input_ref.focus();
                         }
                     }),
                     MenuItem::new("设置与快捷键").on_select(move || {
-                        win_settings.restore();
-                        win_settings.show();
-                        win_settings.focus();
+                        restore_and_focus_window(&win_settings);
                         store::set_settings_open(true);
                     }),
                     MenuItem::new("重新连接索引服务").on_select(store::reconnect_or_refresh),
                     MenuItem::new("关于与检查更新").on_select(move || {
-                        win_about.restore();
-                        win_about.show();
-                        win_about.focus();
+                        restore_and_focus_window(&win_about);
                         store::set_about_open(true);
                     }),
                     MenuItem::separator(),

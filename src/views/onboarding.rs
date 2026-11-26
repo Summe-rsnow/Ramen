@@ -6,7 +6,8 @@ use nsh_core::prelude::*;
 use crate::goz::{DaemonServiceState, PINNED_GOZ_VERSION};
 use crate::store::{self, DaemonUiState};
 use crate::ui::{
-    action, action_disabled, card, empty_state, icons, status_badge, ButtonKind, ValueTone,
+    action, action_busy, action_disabled, card, empty_state, icons, status_badge, ButtonKind,
+    ValueTone,
 };
 
 /// Renders either a brief connecting view or an actionable service onboarding/recovery card.
@@ -98,7 +99,7 @@ fn offline_card(svc: DaemonServiceState) -> impl IntoElement {
     };
 
     let primary_cta = match svc {
-        DaemonServiceState::NotInstalled => action_disabled(
+        DaemonServiceState::NotInstalled => action_busy(
             ButtonKind::Primary,
             format!("一键安装并启动服务 (goz v{PINNED_GOZ_VERSION})"),
             store::service_action_busy,
@@ -106,7 +107,7 @@ fn offline_card(svc: DaemonServiceState) -> impl IntoElement {
         )
         .into_element(),
         DaemonServiceState::Stopped | DaemonServiceState::Disabled | DaemonServiceState::Paused => {
-            action_disabled(
+            action_busy(
                 ButtonKind::Primary,
                 "启动服务",
                 store::service_action_busy,
@@ -115,7 +116,7 @@ fn offline_card(svc: DaemonServiceState) -> impl IntoElement {
             .into_element()
         }
         DaemonServiceState::Starting | DaemonServiceState::Stopping | DaemonServiceState::Running => {
-            action_disabled(
+            action_busy(
                 ButtonKind::Primary,
                 "重新检测",
                 store::service_action_busy,
@@ -149,7 +150,7 @@ fn offline_card(svc: DaemonServiceState) -> impl IntoElement {
 }
 
 fn untrusted_card() -> impl IntoElement {
-    let primary_cta = action_disabled(
+    let primary_cta = action_busy(
         ButtonKind::Primary,
         format!("安装 / 修复服务 (goz v{PINNED_GOZ_VERSION})"),
         store::service_action_busy,
@@ -169,7 +170,7 @@ fn untrusted_card() -> impl IntoElement {
 }
 
 fn error_card(msg: String) -> impl IntoElement {
-    let primary_cta = action_disabled(
+    let primary_cta = action_busy(
         ButtonKind::Primary,
         "重新检测",
         store::service_action_busy,
@@ -285,7 +286,7 @@ fn onboarding_card_shell(
                         .child(when(
                             move || show_secondary_refresh,
                             || {
-                                action_disabled(
+                                action_busy(
                                     ButtonKind::Secondary,
                                     "重新检测",
                                     store::service_action_busy,

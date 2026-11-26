@@ -105,11 +105,13 @@ fn sample_items() -> Vec<ResultItem> {
 }
 
 fn seeded_shell_wrapper() -> impl IntoElement {
-    view()
-        .flex_1()
-        .bg(move || theme().background)
-        .text_color(move || theme().foreground)
-        .child(shell::screen())
+    bento::shell::desktop_window("Ramen", 820.0, 540.0, 48.0, || {
+        view()
+            .flex_1()
+            .bg(move || theme().background)
+            .text_color(move || theme().foreground)
+            .child(shell::screen())
+    })
 }
 
 #[component]
@@ -155,7 +157,7 @@ fn LargeResultsApp() -> impl IntoElement {
 fn app_shell_renders_titlebar_order_theme_and_dialogs() -> Result<(), String> {
     let mut app = start_desktop::<nsh_app_ramen::App>(1040.0, 680.0)?;
     app.wait_for("Ramen")?;
-    assert!(app.screen().shows("v1.1.2"));
+    assert!(app.screen().shows(concat!("v", env!("CARGO_PKG_VERSION"))));
 
     // Verify title-bar right-hand controls place autostart + action icons left of the theme switcher
     let layout = app.screen().layout_nodes();
@@ -203,7 +205,7 @@ fn app_shell_renders_titlebar_order_theme_and_dialogs() -> Result<(), String> {
     app.press("label:关于 Ramen")?;
     app.wait_for("版本更新")?;
     assert!(app.screen().shows("Summe-rsnow/Ramen"));
-    assert!(app.screen().shows("v1.1.2"));
+    assert!(app.screen().shows(concat!("v", env!("CARGO_PKG_VERSION"))));
     app.press("关闭")?;
     app.wait_for_gone("版本更新", Duration::from_secs(2))?;
 
@@ -467,4 +469,149 @@ fn settings_volume_long_path_truncates_without_clipping_stats_and_hovers() -> Re
     );
 
     Ok(())
+}
+
+fn find_tray_autostart_action(
+    batch: &nsh_core::MountBatch,
+) -> Option<(u32, Option<bool>)> {
+    use nsh_core::desktop::{DesktopCommand, MenuItem as DesktopMenuItem};
+    use nsh_core::{Command, MountItem, ROOT_ID};
+
+    batch.items.iter().rev().find_map(|item| match item {
+        MountItem::Command {
+            id: ROOT_ID,
+            command: Command::Desktop(cmd),
+        } => match cmd.as_ref() {
+            DesktopCommand::SetTray(Some(tray)) => tray.menu.iter().find_map(|entry| match entry {
+                DesktopMenuItem::Action(action) if action.label == "开机自启" => {
+                    Some((action.id, action.checked))
+                }
+                _ => None,
+            }),
+            _ => None,
+        },
+        _ => None,
+    })
+}
+
+#[component]
+fn TrayStatusChurnApp() -> impl IntoElement {
+    store::seed_results_for_test(
+        sample_items(),
+        sample_status(false, false),
+        true,
+        false,
+        false,
+    );
+    bento::shell::desktop_window("Ramen", 820.0, 540.0, 48.0, || {
+        let tick = signal(0_u64);
+        view()
+            .flex_1()
+            .bg(move || theme().background)
+            .text_color(move || theme().foreground)
+            .child(shell::screen())
+            .child(view().test_id("trigger-status-churn").on_press(move || {
+                let n = tick.get_untracked() + 1;
+                tick.set(n);
+                let mut next = sample_status(false, false);
+                next.volumes[0].entries += n * 17;
+                next.volumes[0].generation += n;
+                next.process_working_set += n * 4096;
+                next.process_private_bytes += n * 2048;
+                store::update_daemon_status_for_test(next);
+            }))
+    })
+}
+
+#[test]
+fn tray_menu_autostart_toggle_survives_daemon_status_updates() {
+    use nsh_core::desktop::DesktopCommand;
+    use nsh_core::element::{Environment, Root as CoreRoot};
+    use nsh_core::{
+        ApproxTextEngine, Command, Core, EventKind, EventPayload, MountItem, PayloadValue,
+        PressEvent, ROOT_ID,
+    };
+
+    let mut env = Environment::default();
+    env.os = Os::Windows;
+    env.idiom = Idiom::Desktop;
+    env.window = Size::new(Points(1040.0), Points(680.0));
+
+    let mut core = Core::new(ApproxTextEngine, Size::new(Points(1040.0), Points(680.0)));
+    core.set_components(nsh_base::registry());
+    core.set_environment(env);
+
+    core.mount_root(&CoreRoot::of::<TrayStatusChurnApp>());
+    let initial = core.commit().unwrap();
+    let (initial_id, initial_checked) =
+        find_tray_autostart_action(&initial).expect("expected initial tray autostart menu item");
+    assert_ne!(initial_id, 0);
+    assert_eq!(initial_checked, Some(false));
+
+    let churn_driver_id = initial
+        .items
+        .iter()
+        .find_map(|item| match item {
+            MountItem::ViewProps { id, props }
+                if props.test_id.as_deref() == Some("trigger-status-churn") =>
+            {
+                Some(*id)
+            }
+            _ => None,
+        })
+        .expect("expected trigger-status-churn driver node");
+
+    // Simulate live background `StatusUpdated` ticks (entry count + generation + memory changed)
+    // while the user's Windows tray right-click menu is open holding `initial_id`.
+    for _ in 0..3 {
+        let _ = core.component_event(
+            churn_driver_id,
+            EventKind::Press,
+            &EventPayload::Press(PressEvent::default()),
+        );
+        let after_status_tick = core.commit().unwrap();
+        let tray_replaced_on_status_tick = after_status_tick.items.iter().any(|item| {
+            matches!(
+                item,
+                MountItem::Command {
+                    id: ROOT_ID,
+                    command: Command::Desktop(cmd),
+                } if matches!(cmd.as_ref(), DesktopCommand::SetTray(_))
+            )
+        });
+        assert!(
+            !tray_replaced_on_status_tick,
+            "DaemonStatus updates must not re-emit SetTray and invalidate open tray menu item IDs"
+        );
+    }
+
+    // Click the snapshotted tray menu item ("开机自启") -> should enable autostart and check the item.
+    assert!(core.component_event(
+        ROOT_ID,
+        EventKind::Menu,
+        &EventPayload::Map(vec![("id", PayloadValue::Number(f64::from(initial_id)))]),
+    ));
+    let after_enable = core.commit().unwrap();
+    let (enabled_id, enabled_checked) = find_tray_autostart_action(&after_enable)
+        .expect("expected updated tray menu after enabling autostart");
+    assert_eq!(enabled_checked, Some(true));
+
+    // Simulate another background `StatusUpdated` tick before toggling back off.
+    let _ = core.component_event(
+        churn_driver_id,
+        EventKind::Press,
+        &EventPayload::Press(PressEvent::default()),
+    );
+    let _ = core.commit().unwrap();
+
+    // Click the updated tray menu item again -> should disable autostart and uncheck the item.
+    assert!(core.component_event(
+        ROOT_ID,
+        EventKind::Menu,
+        &EventPayload::Map(vec![("id", PayloadValue::Number(f64::from(enabled_id)))]),
+    ));
+    let after_disable = core.commit().unwrap();
+    let (_, disabled_checked) = find_tray_autostart_action(&after_disable)
+        .expect("expected updated tray menu after disabling autostart");
+    assert_eq!(disabled_checked, Some(false));
 }

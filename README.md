@@ -7,10 +7,10 @@
 **专为 Windows 打造的毫秒级原生全盘文件极速搜索工具**
 
 在一个清爽克制的原生桌面窗口内完成 NTFS 全盘文件毫秒级检索、实时增量同步、分类筛选排序与一键定位打开，并通过全局快捷键随叫随到、常驻系统托盘。  
-基于 **Rust + [NSH](https://github.com/longbridge/nsh) + [Bento](https://github.com/Summe-rsnow/Bento) `v1.1.1`** 构建，直接集成 **[goz](https://github.com/mustafaahci/goz) `v0.7.1`** 索引服务，纯原生渲染，无 JavaScript 运行时开销。
+基于 **Rust + [NSH](https://github.com/longbridge/nsh) + [Bento](https://github.com/Summe-rsnow/Bento) `v1.2.0`** 构建，直接集成 **[goz](https://github.com/mustafaahci/goz) `v0.7.1`** 索引服务，纯原生渲染，无 JavaScript 运行时开销。
 
 <p>
-  <a href="https://github.com/Summe-rsnow/Ramen/releases"><img src="https://img.shields.io/badge/Version-v1.1.2-f97316?style=flat-square" alt="Version v1.1.2" /></a>
+  <a href="https://github.com/Summe-rsnow/Ramen/releases"><img src="https://img.shields.io/badge/Version-v1.2.0-f97316?style=flat-square" alt="Version v1.2.0" /></a>
   <img src="https://img.shields.io/badge/Rust-2024-orange?style=flat-square&logo=rust" alt="Rust 2024" />
   <img src="https://img.shields.io/badge/Platform-Windows-0ea5e9?style=flat-square" alt="Platform Windows" />
   <img src="https://img.shields.io/badge/UI-NSH%20Native-6366f1?style=flat-square" alt="UI NSH Native" />
@@ -92,8 +92,8 @@ Ramen 支持空格逻辑与、引号短语以及 `goz` 兼容语法，点击搜�
 
 #### 环境要求
 
-- [Rust](https://www.rust-lang.org/tools/install)（Edition 2024）
-- [NSH CLI](https://nsh.dev/docs/installation)（`0.6.1+`）
+- [Rust](https://www.rust-lang.org/tools/install)（Edition 2024，MSRV `1.97`）
+- [NSH CLI](https://nsh.dev/docs/installation)（`0.7.1+`）
 
 #### 运行开发版
 
@@ -135,7 +135,7 @@ Ramen/
 ├── assets/                 # 应用图标、Logo、品牌标与 64×64 托盘图标
 ├── scripts/
 │   └── fetch-gozd.ps1      # goz v0.7.1 下载与 SHA-256 校验脚本
-├── nsh.json                # 应用元信息、版本号（1.1.2）、窗口配置与主题声明
+├── nsh.json                # 应用元信息、版本号（1.2.0）、窗口配置与主题声明
 ├── theme.json              # 浅色 / 深色语义色 Token（与 Bento 家族规范对齐）
 ├── DESIGN.md               # 设计规范、布局架构、动效清单与无障碍约定
 ├── src/
@@ -171,10 +171,10 @@ Ramen/
 
 | 工具 | 当前版本 | 仓库地址 | 定位与职责 |
 |---|---|---|---|
-| **Bento** | `v1.1.1` | [Summe-rsnow/Bento](https://github.com/Summe-rsnow/Bento) | 共享原生 UI 组件库、统一 24×24 图标库与桌面壳基础设施 |
-| **Wonton** | `v1.3.1` | [Summe-rsnow/Wonton](https://github.com/Summe-rsnow/Wonton) | 专为 Antigravity 打造的进程级独立代理与多账号额度管理工具 |
-| **Sundae** | `v1.1.1` | [Summe-rsnow/Sundae](https://github.com/Summe-rsnow/Sundae) | 专为 Windows Scoop 打造的轻快原生桌面软件包管理器 |
-| **Ramen** | `v1.1.2` | [Summe-rsnow/Ramen](https://github.com/Summe-rsnow/Ramen) | 专为 Windows 打造的极速桌面文件搜索与即时索引检索工具 |
+| **Bento** | `v1.2.0` | [Summe-rsnow/Bento](https://github.com/Summe-rsnow/Bento) | 共享原生 UI 组件库、统一 24×24 图标库与桌面壳基础设施 |
+| **Wonton** | `v1.4.0` | [Summe-rsnow/Wonton](https://github.com/Summe-rsnow/Wonton) | 专为 Antigravity 打造的进程级独立代理与多账号额度管理工具 |
+| **Sundae** | `v1.2.0` | [Summe-rsnow/Sundae](https://github.com/Summe-rsnow/Sundae) | 专为 Windows Scoop 打造的轻快原生桌面软件包管理器 |
+| **Ramen** | `v1.2.0` | [Summe-rsnow/Ramen](https://github.com/Summe-rsnow/Ramen) | 专为 Windows 打造的极速桌面文件搜索与即时索引检索工具 |
 
 ---
 
